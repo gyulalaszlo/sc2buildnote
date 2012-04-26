@@ -15,15 +15,20 @@
     }
 
     SlotQueueItem.prototype.defaults = {
-      object: null,
+      buildable: null,
       starts_at: 0,
-      ends_at: 0
+      ends_at: 0,
+      can_be_built: false
     };
 
     SlotQueueItem.prototype.initialize = function() {
       return this.set({
-        ends_at: this.attributes.starts_at + this.attributes.object.time
+        ends_at: this.attributes.starts_at + this.attributes.buildable.time
       });
+    };
+
+    SlotQueueItem.prototype.log = function() {
+      return "< " + this.attributes.buildable.name + " | " + this.attributes.starts_at + "s-" + this.attributes.ends_at + "s >";
     };
 
     return SlotQueueItem;
@@ -67,6 +72,17 @@
       return this.queue = new SlotQueue;
     };
 
+    Slot.prototype.isAvailableAt = function(time) {
+      if (this.attributes.available_at > time) {
+        return false;
+      }
+      return true;
+    };
+
+    Slot.prototype.getType = function() {
+      return SlotTypes.all[this.attributes.type];
+    };
+
     return Slot;
 
   })(Backbone.Model);
@@ -96,6 +112,10 @@
       this.attributes = attributes;
       this.allows = this.attributes.allows;
     }
+
+    SlotType.prototype.can_build = function(buildable) {
+      return _(this.allows).indexOf(buildable.key) !== -1;
+    };
 
     return SlotType;
 

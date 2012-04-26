@@ -2,6 +2,13 @@
 class Cost
   constructor: (@minerals, @gas=0, @supply=0)->
 
+
+  # set the costs (or reset it if called without parameters)
+  set: (@minerals=0, @gas=0, @supply=0)->
+
+  toString: ->
+    "M:#{@minerals} | G:#{@gas} | Supply: #{@supply}"
+
 # A prototype for anything that can be built
 class Buildable
 

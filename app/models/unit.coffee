@@ -1,13 +1,17 @@
 # an item in a slot's queue
 class SlotQueueItem extends Backbone.Model
   defaults:
-    object: null
+    buildable: null
     starts_at: 0
     ends_at: 0
+    can_be_built: false
 
   initialize: ()->
     @set
-      ends_at: @attributes.starts_at + @attributes.object.time
+      ends_at: @attributes.starts_at + @attributes.buildable.time
+
+  log: ()->
+    "< #{@attributes.buildable.name} | #{@attributes.starts_at}s-#{@attributes.ends_at}s >"
 
 
 # the queue of a given slot, containing the production runs
@@ -31,6 +35,19 @@ class Slot extends Backbone.Model
     @queue = new SlotQueue
 
 
+  # is this Slot available at a given time? (has it
+  # been created?)
+  isAvailableAt: (time)->
+    # has been created?
+    return false if @attributes.available_at > time
+    true
+
+  # get the SlotType object of this slot
+  getType: -> SlotTypes.all[ @attributes.type ]
+
+
+
+
 
 # all the available slots
 class Slots extends Backbone.Collection
@@ -47,6 +64,10 @@ class Slots extends Backbone.Collection
 class SlotType
   constructor: (@name, @attributes)->
     @allows = @attributes.allows
+
+  # can this slot type build the given Buildable?
+  can_build: (buildable)->
+    _(@allows).indexOf( buildable.key ) != -1
 
 
 # a list of all the slot types

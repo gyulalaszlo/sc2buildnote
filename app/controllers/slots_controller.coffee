@@ -19,7 +19,6 @@ class SlotView extends Backbone.View
   tagName:  "div"
 
   slotItems: ->
-    console.log $('.slot-items', @el)
     $('.slot-items', @$el)
 
   template: _.template $('#slot-template').html()
@@ -87,27 +86,43 @@ class SlotsView extends Backbone.View
 
 
 # init code
+#
 
-slots = new Slots
+$(->
+  slots = new Slots
 
-App = new SlotsView(slots)
+  App = new SlotsView(slots)
 
-wslot =  new Slot type: "worker" 
-slots.add wslot
+  wslot =  new Slot type: "cc" 
+  slots.add wslot
 
-bslot =  new Slot type: "barracks" 
-slots.add bslot
-slots.add( new Slot type: "barracks" )
+  bslot =  new Slot type: "barracks" 
+  slots.add bslot
+  slots.add( new Slot type: "worker" )
 
 
-for i in [1..6]
-  wslot.queue.add( new SlotQueueItem 
-    object: Buildables.units.SCV
-    starts_at: i * 18
+  for i in [1..6]
+    wslot.queue.add( new SlotQueueItem 
+      buildable: Buildables.units.SCV
+      starts_at: i * 18
+    )
+
+  # for i in [1..6]
+  #   bslot.queue.add( new SlotQueueItem 
+  #     buildable: Buildables.units.Marine
+  #     starts_at: i * 26
+  #   )
+
+
+
+
+
+  # game = new Game( new ResourceState, new GameEvents)
+  game = new Game(
+    new ResourceState( minerals: 250, gas: 0, supply: 6, max_supply: 11 ),
+    slots
   )
 
-for i in [1..6]
-  bslot.queue.add( new SlotQueueItem 
-    object: Buildables.units.Marine
-    starts_at: i * 26
-  )
+  game.reactor.moveTo 120
+
+)

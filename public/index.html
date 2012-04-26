@@ -35,7 +35,7 @@
   </script>
 
   <script id="slot-item-template" type="text/template">
-    <%= object.name %>
+    <span style="color:<%= can_be_built ? 'green' : 'red' %>"> <%= buildable.name %></span>
   </script>
 
 
@@ -56,14 +56,14 @@
 
   <script src="cache/data/units_seed.js"></script>
 
-  <!-- <script src="cache/models/resources.js"></script>-->
+  <script src="cache/models/resources.js"></script>
   <script src="cache/models/buildable.js"></script>
   <!-- <script src="cache/models/unit.js"></script>-->
   <!-- <script src="cache/models/game_event.js"></script>-->
   <!-- <script src="cache/models/game_state.js"></script>-->
-  <!-- <script src="cache/models/mining_reactor.js"></script>-->
-  <!-- <script src="cache/models/game_reactor.js"></script>-->
-  <!-- <script src="cache/models/game.js"></script>-->
+  <script src="cache/models/mining_reactor.js"></script>
+  <script src="cache/models/game_reactor.js"></script>
+  <script src="cache/models/game.js"></script>
 
   <script src="cache/models/unit.js"></script>
   <script src="cache/controllers/slots_controller.js"></script>

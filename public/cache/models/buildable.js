@@ -15,6 +15,16 @@
       this.supply = supply != null ? supply : 0;
     }
 
+    Cost.prototype.set = function(minerals, gas, supply) {
+      this.minerals = minerals != null ? minerals : 0;
+      this.gas = gas != null ? gas : 0;
+      this.supply = supply != null ? supply : 0;
+    };
+
+    Cost.prototype.toString = function() {
+      return "M:" + this.minerals + " | G:" + this.gas + " | Supply: " + this.supply;
+    };
+
     return Cost;
 
   })();

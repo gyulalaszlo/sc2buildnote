@@ -3,6 +3,9 @@
   var TERRAN_BUILDINGS, TERRAN_SLOTS, TERRAN_UNITS, root;
 
   TERRAN_SLOTS = {
+    "cc": {
+      allows: ["SCV"]
+    },
     "worker": {
       allows: ["Command Center", "Supply Depot"]
     },
@@ -18,7 +21,8 @@
     "SCV": {
       cost: [50, 0, 1],
       time: 17,
-      slots: ["worker"]
+      slots: ["worker"],
+      worker: true
     },
     "Marine": {
       cost: [50, 0, 1],
@@ -35,7 +39,7 @@
       cost: [400, 0, 0],
       time: 100,
       provides_supply: 11,
-      slots: ["worker"]
+      slots: ["cc"]
     },
     "Supply Depot": {
       cost: [100, 0, 0],

@@ -12,6 +12,7 @@
       this.events = events;
       this.time = time != null ? time : 0;
       this.workers = [];
+      this.slots = this.events;
       this.items = [];
       this.resources = this.game.resources;
       this.mining = new MiningReactor(this);
@@ -20,6 +21,7 @@
     GameReactor.prototype.moveTo = function(time) {
       var _results;
       this.time = 0;
+      this.running_production = [];
       _results = [];
       while (this.time < time) {
         _results.push(this.nextTick());
@@ -28,23 +30,9 @@
     };
 
     GameReactor.prototype.nextTick = function() {
-      var item, product, products, _i, _j, _len, _len1, _ref;
-      this.log("----- " + this.time + "s | ", this.resources.log());
-      _ref = this.items;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        item = _ref[_i];
-        if (item.builder().has_production_finishing_at(this.time)) {
-          products = item.builder().get_finished_product(this.time);
-          for (_j = 0, _len1 = products.length; _j < _len1; _j++) {
-            product = products[_j];
-            this.addCompleted(product);
-            this.log("PRODUCTION FINISHED -- " + (product.log()));
-          }
-        }
-      }
+      this.process_events_ending_at(this.time);
       this.process_events_starting_at(this.time);
       this.mining.mine(this.workers, this.resources);
-      console.log('');
       return this.time += 1;
     };
 
@@ -52,6 +40,7 @@
       var buildable;
       this.items.push(item);
       buildable = item.get('buildable');
+      console.log(buildable);
       if (buildable !== null) {
         if (buildable.attributes.worker) {
           this.addWorker(item);
@@ -66,74 +55,67 @@
     };
 
     GameReactor.prototype.process_events_starting_at = function(time) {
-      var e, starting, _i, _len, _results;
-      starting = this.game.events.where({
-        start_time: time
-      });
-      _results = [];
-      for (_i = 0, _len = starting.length; _i < _len; _i++) {
-        e = starting[_i];
-        if (e.get('type') === GameEvent.BUILD) {
-          _results.push(this.process_buildable_event_start(e));
-        } else {
-          _results.push(void 0);
+      var slot, started_item, starting_production, _i, _j, _len, _len1, _ref, _results;
+      starting_production = [];
+      _ref = this.slots.models;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        slot = _ref[_i];
+        if (!slot.isAvailableAt(time)) {
+          continue;
         }
+        starting_production.push.apply(starting_production, slot.queue.where({
+          starts_at: time
+        }));
+      }
+      _results = [];
+      for (_j = 0, _len1 = starting_production.length; _j < _len1; _j++) {
+        started_item = starting_production[_j];
+        _results.push(this.process_buildable_event_start(started_item));
       }
       return _results;
     };
 
-    GameReactor.prototype.process_buildable_event_start = function(e) {
-      var buildable, builder, can_build, item, _i, _len, _ref;
-      buildable = e.get('buildable');
+    GameReactor.prototype.process_buildable_event_start = function(started_item) {
+      var buildable, can_build;
+      buildable = started_item.get('buildable');
       can_build = false;
       if (!this.resources.can_cover(buildable.cost)) {
-        this.error("Not enough resources for ", e.log(), this.resources.log());
+        this.error("Not enough resources for ", started_item.log(), this.resources.log());
+        started_item.set({
+          can_be_built: false
+        });
         return false;
       }
       this.resources.deduct(buildable.cost);
-      _ref = this.items;
-      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-        item = _ref[_i];
-        builder = item.get('builder');
-        can_build = builder.queue_production(this.time, buildable);
-        if (can_build) {
-          break;
-        }
-      }
-      if (can_build) {
-        this.log("STARTING PRODUCTION | ", e.log());
-        return true;
-      } else {
-        this.error("No slots available for the production of", e.log());
-        return false;
-      }
+      started_item.set({
+        can_be_built: true
+      });
+      this.running_production.push(started_item.cid);
+      return this.log("STARTING PRODUCTION | ", started_item.log());
     };
 
     GameReactor.prototype.process_events_ending_at = function(time) {
-      var e, ending, _i, _len, _results;
-      ending = this.game.events.where({
-        end_time: time
-      });
-      _results = [];
-      for (_i = 0, _len = ending.length; _i < _len; _i++) {
-        e = ending[_i];
-        if (e.get('type') === GameEvent.BUILD) {
-          this.process_buildable_event_end(e);
+      var ended_item, ending_production, slot, _i, _j, _len, _len1, _ref;
+      ending_production = [];
+      _ref = this.slots.models;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        slot = _ref[_i];
+        if (!slot.isAvailableAt(time)) {
+          continue;
         }
-        _results.push(this.log("ending: ", e.log()));
+        ending_production.push.apply(ending_production, slot.queue.where({
+          ends_at: time
+        }));
       }
-      return _results;
-    };
-
-    GameReactor.prototype.process_buildable_event_end = function(e) {
-      var buildable, built_item;
-      buildable = e.get('buildable');
-      built_item = new BuiltItem({
-        start_time: e.get('start_time'),
-        end_time: e.get('end_time'),
-        buildable: buildable
-      });
-      return this.addCompleted(built_item);
+      for (_j = 0, _len1 = ending_production.length; _j < _len1; _j++) {
+        ended_item = ending_production[_j];
+        if (_(this.running_production).indexOf(ended_item.cid) === -1) {
+          this.error("cannot end production of not-queued " + (ended_item.log()));
+          return false;
+        }
+        this.log("ENDING: ", ended_item.log());
+        this.addCompleted(ended_item);
+      }
     };
 
     GameReactor.prototype.log = function() {
