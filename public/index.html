@@ -20,11 +20,24 @@
 
   </header>
   <div role="main">
+    <div id="slot-list"></div>
 
   </div>
   <footer>
 
   </footer>
+
+  <script id="slot-template" type="text/template">
+    <h2 class="name"><%= type %></h2>
+    <div class="slot_queue" style="top:<%= created_at %>px; height: 400px;">
+      <ul class='slot-items' style="position:relative"></ul>
+    </div>
+  </script>
+
+  <script id="slot-item-template" type="text/template">
+    <%= object.name %>
+  </script>
+
 
 
   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
@@ -43,14 +56,21 @@
 
   <script src="cache/data/units_seed.js"></script>
 
-  <script src="cache/models/resources.js"></script>
+  <!-- <script src="cache/models/resources.js"></script>-->
   <script src="cache/models/buildable.js"></script>
+  <!-- <script src="cache/models/unit.js"></script>-->
+  <!-- <script src="cache/models/game_event.js"></script>-->
+  <!-- <script src="cache/models/game_state.js"></script>-->
+  <!-- <script src="cache/models/mining_reactor.js"></script>-->
+  <!-- <script src="cache/models/game_reactor.js"></script>-->
+  <!-- <script src="cache/models/game.js"></script>-->
+
   <script src="cache/models/unit.js"></script>
-  <script src="cache/models/game_event.js"></script>
-  <script src="cache/models/game_state.js"></script>
-  <script src="cache/models/mining_reactor.js"></script>
-  <script src="cache/models/game_reactor.js"></script>
-  <script src="cache/models/game.js"></script>
+  <script src="cache/controllers/slots_controller.js"></script>
+
+  <script>
+
+  </script>
 
 </body>
 </html>
