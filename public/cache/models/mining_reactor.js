@@ -3,7 +3,7 @@
   var MINING_PER_MINUTE, MINING_RATES, MiningReactor, exp,
     __slice = [].slice;
 
-  MINING_PER_MINUTE = [0, 45, 90, 102];
+  MINING_PER_MINUTE = [0, 40, 80, 100];
 
   MINING_RATES = _(MINING_PER_MINUTE).map(function(e) {
     return e / 60.0;
@@ -26,7 +26,7 @@
         return;
       }
       max_workers_per_patch = Math.ceil(worker_count / this.patches);
-      min_workers_per_patch = Math.min(0, max_workers_per_patch - 1);
+      min_workers_per_patch = Math.max(0, max_workers_per_patch - 1);
       patches_with_max_workers = worker_count % this.patches;
       if (patches_with_max_workers === 0) {
         patches_with_max_workers = this.patches;
@@ -35,7 +35,7 @@
       income = patches_with_max_workers * MINING_RATES[max_workers_per_patch] + patches_with_min_workers * MINING_RATES[min_workers_per_patch];
       this.last_mined.set(income);
       resources.add(this.last_mined);
-      return this.log("" + worker_count + " workers mined: ", this.last_mined.toString());
+      return this.log("" + worker_count + " workers [" + patches_with_max_workers + "x" + max_workers_per_patch + " W + " + patches_with_min_workers + "x" + min_workers_per_patch + " W] mined: ", this.last_mined.toString());
     };
 
     MiningReactor.prototype.log = function() {

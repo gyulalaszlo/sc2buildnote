@@ -18,6 +18,10 @@
 
     SlotItemView.prototype.template = _.template($('#slot-item-template').html());
 
+    SlotItemView.prototype.events = {
+      click: 'displayTooltip'
+    };
+
     SlotItemView.prototype.initialize = function() {};
 
     SlotItemView.prototype.render = function() {
@@ -27,7 +31,14 @@
         top: this.model.get('starts_at'),
         height: this.model.get('ends_at') - this.model.get('starts_at')
       });
+      if (!this.model.get('can_be_built')) {
+        this.$el.addClass('error');
+      }
       return this;
+    };
+
+    SlotItemView.prototype.displayTooltip = function() {
+      return console.log(this.model.log());
     };
 
     return SlotItemView;
@@ -62,6 +73,7 @@
 
     SlotView.prototype.render = function() {
       this.$el.html(this.template(this.model.toJSON()));
+      this.$el.addClass('slot-block');
       this.addAll();
       return this;
     };
@@ -107,9 +119,9 @@
 
     SlotsView.prototype.render = function() {
       if (this.slots.length) {
-        return console.log("has slots");
+
       } else {
-        return console.log("has no slots");
+
       }
     };
 
@@ -130,33 +142,45 @@
   })(Backbone.View);
 
   $(function() {
-    var App, bslot, game, i, slots, wslot, _i;
+    var App, barracks, depot, game, i, item, marine, scv, slots, _i, _len, _ref;
     slots = new Slots;
     App = new SlotsView(slots);
-    wslot = new Slot({
-      type: "cc"
-    });
-    slots.add(wslot);
-    bslot = new Slot({
-      type: "barracks"
-    });
-    slots.add(bslot);
-    slots.add(new Slot({
-      type: "worker"
-    }));
-    for (i = _i = 1; _i <= 6; i = ++_i) {
-      wslot.queue.add(new SlotQueueItem({
-        buildable: Buildables.units.SCV,
-        starts_at: i * 18
-      }));
-    }
     game = new Game(new ResourceState({
-      minerals: 250,
+      minerals: 50,
       gas: 0,
-      supply: 6,
-      max_supply: 11
+      supply: 0,
+      max_supply: 0
     }), slots);
-    return game.reactor.moveTo(120);
+    game.reactor.setDefaultItems([
+      new SlotQueueItem({
+        buildable: Buildables.buildings["Command Center"]
+      }), new SlotQueueItem({
+        buildable: Buildables.units.SCV
+      }), new SlotQueueItem({
+        buildable: Buildables.units.SCV
+      }), new SlotQueueItem({
+        buildable: Buildables.units.SCV
+      }), new SlotQueueItem({
+        buildable: Buildables.units.SCV
+      }), new SlotQueueItem({
+        buildable: Buildables.units.SCV
+      }), new SlotQueueItem({
+        buildable: Buildables.units.SCV
+      })
+    ]);
+    game.reactor.reset();
+    depot = Buildables.buildings["Supply Depot"];
+    barracks = Buildables.buildings["Barracks"];
+    scv = Buildables.units.SCV;
+    marine = Buildables.units.Marine;
+    _ref = [scv, scv, scv, depot, scv, scv, scv, barracks, scv, scv, scv, marine, scv, scv];
+    for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+      item = _ref[i];
+      game.reactor.tryToQueue(item);
+    }
+    game.reactor.debug = true;
+    game.reactor.reset();
+    return game.reactor.moveTo(200);
   });
 
 }).call(this);

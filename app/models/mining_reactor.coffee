@@ -32,7 +32,10 @@
 #
 
 # all patches close
-MINING_PER_MINUTE = [ 0, 45, 90, 102 ]
+# MINING_PER_MINUTE = [ 0, 45, 90, 102 ]
+
+# middle of the road patches
+MINING_PER_MINUTE = [ 0, 40, 80, 100 ]
 
 MINING_RATES = _( MINING_PER_MINUTE ).map (e)-> e / 60.0
 
@@ -52,7 +55,7 @@ class MiningReactor
 
     # get minimum and maximum workers per patch
     max_workers_per_patch = Math.ceil( worker_count / @patches )
-    min_workers_per_patch = Math.min( 0, max_workers_per_patch - 1)
+    min_workers_per_patch = Math.max( 0, max_workers_per_patch - 1)
 
     patches_with_max_workers = worker_count % @patches
     # if the worker count is an integer multiple of the number of patches
@@ -70,7 +73,7 @@ class MiningReactor
     @last_mined.set income
     resources.add @last_mined
 
-    @log "#{worker_count} workers mined: ", @last_mined.toString()
+    @log "#{worker_count} workers [#{patches_with_max_workers}x#{max_workers_per_patch} W + #{patches_with_min_workers}x#{min_workers_per_patch} W] mined: ", @last_mined.toString()
 
 
 

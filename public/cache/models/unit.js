@@ -18,17 +18,44 @@
       buildable: null,
       starts_at: 0,
       ends_at: 0,
-      can_be_built: false
+      can_be_built: false,
+      slots_created: false
     };
 
-    SlotQueueItem.prototype.initialize = function() {
-      return this.set({
-        ends_at: this.attributes.starts_at + this.attributes.buildable.time
-      });
+    SlotQueueItem.prototype.initialize = function(attributes) {
+      if (attributes.starts_at) {
+        return this.set({
+          ends_at: this.attributes.starts_at + this.attributes.buildable.time
+        });
+      } else {
+        return this.set({
+          starts_at: -1,
+          ends_at: -1
+        });
+      }
     };
 
     SlotQueueItem.prototype.log = function() {
-      return "< " + this.attributes.buildable.name + " | " + this.attributes.starts_at + "s-" + this.attributes.ends_at + "s >";
+      return ("< " + this.attributes.buildable.name + "[" + this.cid + "] | " + this.attributes.starts_at + "s-" + this.attributes.ends_at + "s") + ("" + (!this.attributes.can_be_built ? ' | CANNOT BE BUILT!' : '') + " >");
+    };
+
+    SlotQueueItem.prototype.create_slots = function() {
+      var self;
+      if (this.attributes.slots_created) {
+        return this.slots;
+      }
+      self = this;
+      this.slots = _(this.attributes.buildable.slots()).map(function(slot_key) {
+        return new Slot({
+          type: slot_key,
+          created_at: self.attributes.starts_at,
+          available_at: self.attributes.ends_at
+        });
+      });
+      this.set({
+        slots_created: true
+      });
+      return this.slots;
     };
 
     return SlotQueueItem;
@@ -79,8 +106,30 @@
       return true;
     };
 
+    Slot.prototype.canProduceAt = function(time) {
+      var item, _i, _len, _ref;
+      if (!this.isAvailableAt(time)) {
+        return false;
+      }
+      _ref = this.queue.models;
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        item = _ref[_i];
+        if ((item.get('starts_at') < time && time < item.get('ends_at'))) {
+          return false;
+        }
+      }
+      return true;
+    };
+
     Slot.prototype.getType = function() {
-      return SlotTypes.all[this.attributes.type];
+      return SlotTypes.all.types[this.attributes.type];
+    };
+
+    Slot.prototype.queueBuild = function(buildable, start_time) {
+      return this.queue.add(new SlotQueueItem({
+        buildable: buildable,
+        starts_at: start_time
+      }));
     };
 
     return Slot;
@@ -98,6 +147,48 @@
     }
 
     Slots.prototype.model = Slot;
+
+    Slots.prototype.queueBuild = function(buildable, time) {
+      var i, slot, slotType, _i, _len, _ref;
+      _ref = this.models;
+      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+        slot = _ref[i];
+        slotType = slot.getType();
+        if (slotType.can_build(buildable) && slot.canProduceAt(time)) {
+          slot.queueBuild(buildable, time);
+          return true;
+        }
+      }
+      return false;
+    };
+
+    Slots.prototype.lastProductionEnds = function(buildable) {
+      var finish_time, global_last_start_time, i, item, last, slot, slotType, slot_end_time, start_time, _i, _j, _len, _len1, _ref, _ref1;
+      last = 1;
+      slot_end_time = 1;
+      global_last_start_time = 1;
+      _ref = this.models;
+      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+        slot = _ref[i];
+        slotType = slot.getType();
+        _ref1 = slot.queue.models;
+        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+          item = _ref1[_j];
+          start_time = item.get('starts_at');
+          if (global_last_start_time < start_time) {
+            global_last_start_time = start_time;
+          }
+          if (slotType.can_build(buildable)) {
+            finish_time = item.get('ends_at');
+            if (slot_end_time < finish_time) {
+              slot_end_time = finish_time;
+            }
+          }
+        }
+      }
+      console.log("Last " + buildable.name + " >> slot_end_time: @" + slot_end_time + "s >> global_last_start_time: " + global_last_start_time + "s");
+      return Math.max(slot_end_time, global_last_start_time);
+    };
 
     return Slots;
 
@@ -145,6 +236,8 @@
   }
 
   Buildables.add_group('units', TERRAN_UNITS);
+
+  Buildables.add_group('buildings', TERRAN_BUILDINGS);
 
   root = typeof exports !== "undefined" && exports !== null ? exports : this;
 

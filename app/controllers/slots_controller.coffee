@@ -3,15 +3,26 @@ class SlotItemView extends Backbone.View
   tagName:  "li"
   template: _.template $('#slot-item-template').html()
 
+  events:
+    click: 'displayTooltip'
+
   initialize: ->
 
+  # render this item
   render: ->
     @$el.html @template(@model.toJSON())
     @$el.css
       position: 'absolute'
       top: @model.get 'starts_at'
       height: @model.get('ends_at')- @model.get('starts_at')
+
+    if !@model.get 'can_be_built'
+      @$el.addClass 'error'
     @
+
+  # show the build data of this SlotItem
+  displayTooltip: ->
+    console.log @model.log()
 
 
 # The view of a slot in the timeline
@@ -36,6 +47,7 @@ class SlotView extends Backbone.View
 
   render: ->
     @$el.html @template(@model.toJSON())
+    @$el.addClass 'slot-block'
     @addAll()
     @
     # this.$el.toggleClass('done', this.model.get('done'));
@@ -71,9 +83,9 @@ class SlotsView extends Backbone.View
   # render all slots
   render: ->
     if @slots.length
-      console.log ("has slots")
+      # console.log ("has slots")
     else
-      console.log("has no slots")
+      # console.log("has no slots")
 
   addOne: (slot)->
     view = new SlotView model: slot
@@ -93,36 +105,43 @@ $(->
 
   App = new SlotsView(slots)
 
-  wslot =  new Slot type: "cc" 
-  slots.add wslot
 
-  bslot =  new Slot type: "barracks" 
-  slots.add bslot
-  slots.add( new Slot type: "worker" )
-
-
-  for i in [1..6]
-    wslot.queue.add( new SlotQueueItem 
-      buildable: Buildables.units.SCV
-      starts_at: i * 18
-    )
-
-  # for i in [1..6]
-  #   bslot.queue.add( new SlotQueueItem 
-  #     buildable: Buildables.units.Marine
-  #     starts_at: i * 26
-  #   )
-
-
-
-
-
-  # game = new Game( new ResourceState, new GameEvents)
   game = new Game(
-    new ResourceState( minerals: 250, gas: 0, supply: 6, max_supply: 11 ),
+    new ResourceState( minerals: 50, gas: 0, supply: 0, max_supply: 0 ),
     slots
   )
 
-  game.reactor.moveTo 120
+  game.reactor.setDefaultItems [
+    new SlotQueueItem( buildable: Buildables.buildings[ "Command Center"] ),
+    new SlotQueueItem( buildable: Buildables.units.SCV ),
+    new SlotQueueItem( buildable: Buildables.units.SCV ),
+    new SlotQueueItem( buildable: Buildables.units.SCV ),
+    new SlotQueueItem( buildable: Buildables.units.SCV ),
+    new SlotQueueItem( buildable: Buildables.units.SCV ),
+    new SlotQueueItem( buildable: Buildables.units.SCV )
+  ]
+
+  game.reactor.reset()
+
+  depot = Buildables.buildings[ "Supply Depot" ]
+  barracks = Buildables.buildings[ "Barracks" ]
+  scv = Buildables.units.SCV
+  marine = Buildables.units.Marine
+  # slots.queueBuild Buildables.buildings[ "Supply Depot" ], 80
+
+  for item,i in [ scv, scv, scv, depot, scv, scv, scv, barracks, scv, scv, scv, marine, scv, scv   ]
+    game.reactor.tryToQueue item
+
+  # for i in [0..6]
+  #   game.reactor.tryToQueue Buildables.units.SCV, 10 + i
+
+  # for i in [0..6]
+  #   game.reactor.tryToQueue Buildables.units.SCV, 10 + i
+
+  # game.reactor.tryToQueue depot, 60
+
+  game.reactor.debug = true
+  game.reactor.reset()
+  game.reactor.moveTo 200
 
 )

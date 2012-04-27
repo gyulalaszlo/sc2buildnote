@@ -1,0 +1,31 @@
+/* general lanes */
+
+.slot-block {
+  width:100px;
+  margin: 2px;
+  float: left;
+  border-right: 1px solid #eee;
+  text-align:center;
+  position:relative;
+
+  .header {
+    h2 { font-size:13px; }
+  }
+
+  .slot-queue {
+    min-height:600px;
+  }
+
+  .slot-top { position:absolute; background:rgba( 0,0,0 , 0.2); width:100px; }
+
+  .slot-items {
+    list-style:none;
+    position:relative;
+    padding:0 2px;
+
+    li { text-align:center; font-size:12px; width:96px; border:1px solid white; background:#eee; cursor: pointer; }
+    li:hover { border:1px solid #ccc; }
+    li.error { background-color:red; color: white; }
+  }
+}
+

@@ -14,14 +14,47 @@
       this.workers = [];
       this.slots = this.events;
       this.items = [];
+      this.default_items = [];
       this.resources = this.game.resources;
       this.mining = new MiningReactor(this);
+      this.debug = false;
     }
+
+    GameReactor.prototype.setDefaultItems = function(default_items) {
+      this.default_items = default_items != null ? default_items : [];
+    };
+
+    GameReactor.prototype.setupDefaultItems = function() {
+      var item, _i, _len, _ref, _results;
+      this.items = [];
+      this.workers = [];
+      this.resources = new ResourceState({
+        minerals: 50,
+        gas: 0,
+        supply: 0,
+        max_supply: 0
+      });
+      _ref = this.default_items;
+      _results = [];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        item = _ref[_i];
+        this.addCompleted(item);
+        _results.push(this.resources.deduct(new Cost(0, 0, item.get('buildable').cost.supply)));
+      }
+      return _results;
+    };
+
+    GameReactor.prototype.createDefaultSlots = function() {};
+
+    GameReactor.prototype.reset = function() {
+      this.time = 0;
+      this.setupDefaultItems();
+      return this.running_production = [];
+    };
 
     GameReactor.prototype.moveTo = function(time) {
       var _results;
       this.time = 0;
-      this.running_production = [];
       _results = [];
       while (this.time < time) {
         _results.push(this.nextTick());
@@ -29,29 +62,67 @@
       return _results;
     };
 
-    GameReactor.prototype.nextTick = function() {
+    GameReactor.prototype.tryToQueue = function(buildable, start_time) {
+      var max_time;
+      if (start_time == null) {
+        start_time = this.slots.lastProductionEnds(buildable);
+      }
+      max_time = 2400;
+      this.reset();
+      this.moveTo(start_time);
+      while (this.time < max_time) {
+        this.nextTickForProduction();
+        console.log("Trying to build " + buildable.name + " @ " + this.time + "s | " + (this.resources.log()) + " | cost is " + (buildable.cost.toString()) + " | mining: " + this.workers.length + " workers");
+        if (this.resources.can_cover(buildable.cost)) {
+          if (this.slots.queueBuild(buildable, this.time)) {
+            console.log("  ++ Successfully queued " + buildable.name + " @" + this.time + "s || " + (this.resources.log()));
+            return true;
+          }
+        }
+        this.nextTickForMining();
+        this.advanceTime();
+      }
+      return false;
+    };
+
+    GameReactor.prototype.nextTickForProduction = function() {
       this.process_events_ending_at(this.time);
-      this.process_events_starting_at(this.time);
-      this.mining.mine(this.workers, this.resources);
+      return this.process_events_starting_at(this.time);
+    };
+
+    GameReactor.prototype.nextTickForMining = function() {
+      return this.mining.mine(this.workers, this.resources);
+    };
+
+    GameReactor.prototype.advanceTime = function() {
       return this.time += 1;
     };
 
+    GameReactor.prototype.nextTick = function() {
+      this.log("----- " + this.time + "s | ", this.resources.log());
+      this.nextTickForProduction();
+      this.nextTickForMining();
+      return this.advanceTime();
+    };
+
     GameReactor.prototype.addCompleted = function(item) {
-      var buildable;
+      var buildable, new_slots, _ref;
       this.items.push(item);
       buildable = item.get('buildable');
-      console.log(buildable);
       if (buildable !== null) {
         if (buildable.attributes.worker) {
           this.addWorker(item);
+        }
+        new_slots = item.create_slots();
+        if (new_slots.length) {
+          (_ref = this.slots).push.apply(_ref, new_slots);
         }
         return this.resources.add_max_supply(buildable.provides_supply);
       }
     };
 
     GameReactor.prototype.addWorker = function(worker) {
-      this.workers.push(worker);
-      return this.log("added worker", worker.log());
+      return this.workers.push(worker);
     };
 
     GameReactor.prototype.process_events_starting_at = function(time) {
@@ -80,7 +151,7 @@
       buildable = started_item.get('buildable');
       can_build = false;
       if (!this.resources.can_cover(buildable.cost)) {
-        this.error("Not enough resources for ", started_item.log(), this.resources.log());
+        this.error("Not enough resources for " + this.time + "s - ", started_item.log(), this.resources.log());
         started_item.set({
           can_be_built: false
         });
@@ -121,7 +192,9 @@
     GameReactor.prototype.log = function() {
       var message;
       message = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-      return console.log.apply(console, ["[GameReactor] "].concat(__slice.call(message)));
+      if (this.debug) {
+        return console.log.apply(console, ["[GameReactor] "].concat(__slice.call(message)));
+      }
     };
 
     GameReactor.prototype.error = function() {

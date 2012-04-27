@@ -7,7 +7,7 @@
       allows: ["SCV"]
     },
     "worker": {
-      allows: ["Command Center", "Supply Depot"]
+      allows: ["Command Center", "Supply Depot", "Barracks"]
     },
     "barracks": {
       allows: ["Marine"]
@@ -56,6 +56,8 @@
   root = typeof exports !== "undefined" && exports !== null ? exports : this;
 
   root.TERRAN_SLOTS = TERRAN_SLOTS;
+
+  root.TERRAN_BUILDINGS = TERRAN_BUILDINGS;
 
   root.TERRAN_UNITS = TERRAN_UNITS;
 
